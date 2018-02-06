@@ -27,6 +27,8 @@ using namespace cv;
 Mat frame; //current frame mat
 Mat frameMat; //current frame mat
 Mat Roi;
+
+int frameCount=0;
 //speed var
 vector<double> preX;
 vector<double> preY;
@@ -40,11 +42,33 @@ vector<double> speedPreAvg;
 vector<double> speedAvg;
 
 bool fromCenter=false;
+double pixelToMeter=0;
+double reallMeter=21;
 
 // container of the tracked objects
 vector<Rect2d> rectsObjects;
 vector<Rect> rects;
 vector<Ptr<Tracker>> algorithms;
+void CallBackFunc(int event, int x, int y, int flags, void* userdata)
+{
+    if  ( event == EVENT_LBUTTONDOWN )
+    {
+        cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    }
+    else if  ( event == EVENT_RBUTTONDOWN )
+    {
+        cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    }
+    else if  ( event == EVENT_MBUTTONDOWN )
+    {
+        cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    }
+    else if ( event == EVENT_MOUSEMOVE )
+    {
+        cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
+        
+    }
+}
 
 int keyboard; //input from keyboard
 void processVideo(char* videoFilename);
@@ -68,6 +92,9 @@ int main( int argc, char** argv ){
     VideoCapture cap(video);
     // create a tracker object
 //    Ptr<Tracker> tracker;
+    for( int x = 0; x < 100; x++ ) {
+        cap>>frame;
+    }
     cap>>frame;
      Rect Rec(0, 500, 1900, 380);
      rectangle(frame, Rec, Scalar(255), 10, 8, 0);
@@ -76,10 +103,35 @@ int main( int argc, char** argv ){
     frameMat=frame;
     // Change the background from white to black, since that will help later to extract
     // better results during the use of Distance Transform
+    //Create a window
+    namedWindow("My Window", 1);
+    //set the callback function for any mouse event
+    setMouseCallback("My Window", CallBackFunc, NULL);
+    //show the image
+    imshow("My Window", frameMat);
 
     // Show output image
     imshow("Black Background Image", frameMat);
     
+    double x1=737;
+        double y1=168;
+        double x2=835;
+        double y2=164;
+    
+    
+    cv::line(frameMat,
+             cv::Point(x1,y1)
+             ,
+             cv::Point(x2,y2),
+             cv::Scalar(255,0,0),
+             1,
+             LINE_8
+             );
+    
+    double lineDist=sqrt(pow((x1-x2),2)-pow((y1-y2),2));
+                         cout<<lineDist<<endl;
+    pixelToMeter=reallMeter/lineDist;
+    cout<<pixelToMeter<<endl;
     selectROIs("tracker",frame,rects,fromCenter);
     cout<<rects.size()<<endl;
     for(int i=0;i<rects.size();i++)
@@ -101,56 +153,35 @@ int main( int argc, char** argv ){
         
     }
     trackers.add(algorithms,frame,rectsObjects);
-//    for()
-//    //objects.push_back(rects);
-//    //algorithms=TrackerKCF;
-//
-//     trackers.add(TrackerKCF;,frame,rects);
-    //roi=selectROI("tracker",frame);
-    // initialize the tracker
-    //tracker->init(frame,roi);
-    //        //Specify a vector of rectangles (ROI)
-    //        vector<Rect2d> rects;
-    //        bool fromCenter = false;
-    // The selected rectangles are in
-    
-    
-
-    ///
-
     // perform the tracking process
     printf("Start the tracking process, press ESC to quit.\n");
+    
     //
     for(;;)
     {
+        
         //roi=selectROI("tracker",frame);
         cap>>frame;
         Rect Rec(0, 500, 1900, 380);
         rectangle(frame, Rec, Scalar(255), 1, 8, 0);
         //Select area described by REC and result write to the Roi
         frame = frame(Rec);
-        for( int x = 0; x < frame.rows; x++ ) {
-            for( int y = 0; y < frame.cols; y++ )
-            {
-                if (
-                    frame.at<Vec3b>(x, y)[0]<= 80&&frame.at<Vec3b>(x, y)[0]>= 20&&
-                    frame.at<Vec3b>(x, y)[1]<= 80&&frame.at<Vec3b>(x, y)[1]>= 20&&
-                    frame.at<Vec3b>(x, y)[2]<= 80&&frame.at<Vec3b>(x, y)[2]>= 20
-                    
-                    )
-                {
-                    frame.at<Vec3b>(x, y)[0] = 0;
-                    frame.at<Vec3b>(x, y)[1] = 225;
-                    frame.at<Vec3b>(x, y)[2] = 225;
-                }
-            }
-        }
-//        for(int i=0;i<rects.size();i++)
-//        {
-//            //cout<<"car:"<<i<<" x: "<<rects[i].x<<" y: "<<rects[i].y<<endl;
-//             //rectangle( frame, rects[i], Scalar( 255, 0, 0 ), 2, 1 );
+//        for( int x = 0; x < frame.rows; x++ ) {
+//            for( int y = 0; y < frame.cols; y++ )
+//            {
+//                if (
+//                    frame.at<Vec3b>(x, y)[0]<= 80&&frame.at<Vec3b>(x, y)[0]>= 20&&
+//                    frame.at<Vec3b>(x, y)[1]<= 80&&frame.at<Vec3b>(x, y)[1]>= 20&&
+//                    frame.at<Vec3b>(x, y)[2]<= 80&&frame.at<Vec3b>(x, y)[2]>= 20
+//
+//                    )
+//                {
+//                    frame.at<Vec3b>(x, y)[0] = 0;
+//                    frame.at<Vec3b>(x, y)[1] = 225;
+//                    frame.at<Vec3b>(x, y)[2] = 225;
+//                }
+//            }
 //        }
-       
 //        //get the frame number and write it on the current frame
 //        stringstream ss;
 //        stringstream fps;
@@ -175,19 +206,15 @@ int main( int argc, char** argv ){
         
         //rectangle(frame, cv::Point(10, 2), cv::Point(450,20*trackers.getObjects().size()),
                //   cv::Scalar(255,255,255), -1);
-        
+            frameCount++;
+        if(frameCount==6)
+        {
+            frameCount=0;
         for(unsigned i=0;i<trackers.getObjects().size();i++)
         {
-            
-            
-            
             vector<double>dist(trackers.getObjects().size());
-            
             if(i!=0)
             {
-                
-          
-                
 //                    dist[i]=sqrt ((trackers.getObjects()[0].x-trackers.getObjects()[i].x)*(trackers.getObjects()[0].x-trackers.getObjects()[i].x)+(trackers.getObjects()[0].y-trackers.getObjects()[i].y)*(trackers.getObjects()[0].y-trackers.getObjects()[i].y));
              dist[i]=sqrt ((trackers.getObjects()[0].x-trackers.getObjects()[i].x)*(trackers.getObjects()[0].x-trackers.getObjects()[i].x));
 
@@ -208,13 +235,13 @@ int main( int argc, char** argv ){
                                 cv::Scalar(0,0,0), // Color
                                 1); // Anti-alias // show image with the tracked object
                    // cout<<"dist between target and "<<i<<" is "<<dist[i]<<endl;
-                
-               
             }
+        
             
-            
-            
-            
+          
+                
+    
+             
            //cout<<"tracker speed: "<<i<<"i"<<endl;
             if(lastX[i]==0&&lastY[i]==0)
             {
@@ -238,25 +265,35 @@ int main( int argc, char** argv ){
                 speed[i]=(sqrt(speedX[i]*speedX[i]+speedY[i]*speedY[i]));
                 speedPreAvg[i]+=speed[i];
                 speedAvg[i]=speedPreAvg[i]/ speedCounter[i];
-                cout<<"speed: "<<i<<" : "<<speedAvg[i]<<endl;
+               // cout<<"speed: "<<i<<" : "<<speedAvg[i]<<endl;
             }
-            
-            if(speedAvg[i]!=0)
+            string location="X: "+to_string((int)lastX[i])+" Y: "+to_string((int)lastY[i]);
+            string speedinfo="car:"+to_string(i)+" | Raw speed "+to_string(speed[i])+" | Avg speed "+to_string(speedAvg[i]*pixelToMeter*59.97/6);;
+            string carInfo="width: "+to_string((int)(trackers.getObjects()[i].width-20))+" px"+"| height "+to_string((int)(trackers.getObjects()[i].height-20))+"px ";
+            if(speed[i]==0)
             {
-                
-                string location="X: "+to_string((int)lastX[i])+" Y: "+to_string((int)lastY[i]);
-                string speed="car:"+to_string(i)+" | speed "+to_string(speedAvg[i]);
-                string carInfo="width: "+to_string((int)(trackers.getObjects()[i].width-20))+" px"+"| height "+to_string((int)(trackers.getObjects()[i].height-20))+"px ";
-                
+                string speedLost="car:"+to_string(i)+" lost ";
+                rectangle( frame, trackers.getObjects()[i], Scalar( 0, 255, 0 ), 0.01, 1 );
+                cv::putText(frame,speedLost,
+                            cv::Point(400, 20+i*12), // Coordinates
+                            cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
+                            0.5, // Scale. 2.0 = 2x bigger
+                            cv::Scalar(0,0,0), // Color
+                            1); // Anti-alias // show image with the tracked object
+            }
+            else
+            {
                 if(i==0)
                 {
+                    cout<<speed[i]<<endl;
                     rectangle( frame, trackers.getObjects()[i], Scalar( 0, 255, 0 ), 0.01, 1 );
-//                    cv::putText(frame,speed,
-//                                cv::Point(trackers.getObjects()[i].x+20,trackers.getObjects()[i].y+20), // Coordinates
-//                                cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
-//                                0.5, // Scale. 2.0 = 2x bigger
-//                                cv::Scalar(0,255,0), // Color
-//                                1); // Anti-alias // show image with the tracked object
+                    
+                    cv::putText(frame,speedinfo,
+                                cv::Point(trackers.getObjects()[i].x+20,trackers.getObjects()[i].y+20), // Coordinates
+                                cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
+                                0.5, // Scale. 2.0 = 2x bigger
+                                cv::Scalar(0,255,0), // Color
+                                1); // Anti-alias // show image with the tracked object
                 }
                 else
                 {
@@ -268,7 +305,7 @@ int main( int argc, char** argv ){
 //                                cv::Scalar(255,0,0), // Color
 //                                1); // Anti-alias // show image with the tracked object
                     
-                    cv::putText(frame,speed,
+                    cv::putText(frame,speedinfo,
                                 cv::Point(400, 20+i*12), // Coordinates
                                 cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
                                 0.5, // Scale. 2.0 = 2x bigger
@@ -295,20 +332,14 @@ int main( int argc, char** argv ){
             //rectangle( Roi, trackers.getObjects()[i], Scalar( 0, 255, 0 ), 0.25, 1 );
             //cout<<"tracker: "<<i<<"x:"<<trackers.getObjects()[i].x<<i<<"y:"<<trackers.getObjects()[i].y<<endl;
         }
-        
-        
-        
-        
-        
-        
-        
-        
+            
+        }
         
          trackers.update(frame);
+      
         
         imshow("tracker",frame);
         // Show output image
-        imshow("Black Background Image", frameMat);
         // draw the tracked object
         //rectangle( frame, roi, Scalar( 255, 0, 0 ), 2, 1 );
         // show image with the tracked object
