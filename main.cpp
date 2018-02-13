@@ -3,32 +3,18 @@
 #include <opencv2/tracking.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
-//#include <time.h>
-//#include "opencv2/imgcodecs.hpp"
-//#include "opencv2/imgcodecs.hpp"
-//#include "opencv2/imgproc.hpp"
-//#include <opencv2/video.hpp>
-//#include <opencv2/core/ocl.hpp>
-//#include "opencv2/opencv_modules.hpp"
-//#include "opencv2/core.hpp"
-//#include "opencv2/opencv.hpp"
-//#include "opencv2/video/background_segm.hpp"
-//
-//#include "opencv2/core.hpp"
-//#include "opencv2/imgproc/types_c.h"
-
 //C
 #include <stdio.h>
 //C++
 #include <iostream>
 #include <sstream>
 #include <ctime>
+#include <fstream>
 using namespace std;
 using namespace cv;
 Mat frame; //current frame mat
 Mat frameMat; //current frame mat
 Mat Roi;
-
 int frameCount=0;
 //speed var
 vector<double> preX;
@@ -41,36 +27,35 @@ vector<double> speedY;
 vector<double> speedCounter;
 vector<double> speedPreAvg;
 vector<double> speedAvg;
-
 bool fromCenter=false;
 double pixelToMeter=0;
 double reallMeter=21;
-
-// container of the tracked objects
-vector<Rect2d> rectsObjects;
-vector<Rect> rects;
-vector<Ptr<Tracker>> algorithms;
-void CallBackFunc(int event, int x, int y, int flags, void* userdata)
-{
-    if  ( event == EVENT_LBUTTONDOWN )
+int rModifer=100;
+int gModifer=0;
+int bModifer=10;
+    // container of the tracked objects
+    vector<Rect2d> rectsObjects;
+    vector<Rect> rects;
+    vector<Ptr<Tracker>> algorithms;
+    void CallBackFunc(int event, int x, int y, int flags, void* userdata)
     {
-        cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+        if  ( event == EVENT_LBUTTONDOWN )
+        {
+            cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+        }
+        else if  ( event == EVENT_RBUTTONDOWN )
+        {
+            cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+        }
+        else if  ( event == EVENT_MBUTTONDOWN )
+        {
+            cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+        }
+        else if ( event == EVENT_MOUSEMOVE )
+        {
+            cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
+        }
     }
-    else if  ( event == EVENT_RBUTTONDOWN )
-    {
-        cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-    }
-    else if  ( event == EVENT_MBUTTONDOWN )
-    {
-        cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-    }
-    else if ( event == EVENT_MOUSEMOVE )
-    {
-        cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
-        
-    }
-}
-
 int keyboard; //input from keyboard
 void processVideo(char* videoFilename);
 int main( int argc, char** argv ){
@@ -83,43 +68,56 @@ int main( int argc, char** argv ){
         << endl;
         return 0;
     }
-    // declares all required variables
-    //create GUI windows
-//    namedWindow("tracker");
     //  create the tracker
     MultiTracker trackers;
     // set input video
     std::string video = argv[1];
     VideoCapture cap(video);
-    // create a tracker object
+// skip frame function
 //    Ptr<Tracker> tracker;
-    for( int x = 0; x < 100; x++ ) {
-        cap>>frame;
-    }
+//    for( int x = 0; x < 5000; x++ ) {
+//        cap>>frame;
+//    }
+    //open csv file
+    ofstream outfile;
+    outfile.open("./result.csv");
+    outfile<<"time"<<"," << "id"<<","<<"x"<<","<<"y"<<","<<"speed"<<",";
     cap>>frame;
-     Rect Rec(0, 500, 1900, 380);
-     rectangle(frame, Rec, Scalar(255), 10, 8, 0);
+    Rect Rec(0, 500, 1900, 380);
+    rectangle(frame, Rec, Scalar(255), 10, 8, 0);
     //Select area described by REC and result write to the Roi
     frame = frame(Rec);
     frameMat=frame;
-    // Change the background from white to black, since that will help later to extract
-    // better results during the use of Distance Transform
     //Create a window
     namedWindow("My Window", 1);
     //set the callback function for any mouse event
     setMouseCallback("My Window", CallBackFunc, NULL);
     //show the image
     imshow("My Window", frameMat);
-
-    // Show output image
-    imshow("Black Background Image", frameMat);
-    
-    double x1=737;
-        double y1=168;
-        double x2=835;
-        double y2=164;
-    
-    
+//    //filtering image
+//    for( int x = 0; x < frame.rows; x++ ) {
+//        for( int y = 0; y < frame.cols; y++ )
+//        {
+//            if (
+//                frame.at<Vec3b>(x, y)[0]<= 80&&frame.at<Vec3b>(x, y)[0]>= 20&&
+//                frame.at<Vec3b>(x, y)[1]<= 80&&frame.at<Vec3b>(x, y)[1]>= 20&&
+//                frame.at<Vec3b>(x, y)[2]<= 80&&frame.at<Vec3b>(x, y)[2]>= 20
+//
+//                )
+//            {
+//                frame.at<Vec3b>(x, y)[0] +=rModifer;
+//                frame.at<Vec3b>(x, y)[1] +=gModifer;
+//                frame.at<Vec3b>(x, y)[2]+=bModifer;
+//            }
+//        }
+//    }
+    //cvtColor( frame, frame, CV_BGR2GRAY );
+    //threshold( frame, frame, 127, 255,1 );
+    //draw line
+    double x1=952;
+    double y1=110;
+    double x2=1048;
+    double y2=109;
     cv::line(frameMat,
              cv::Point(x1,y1)
              ,
@@ -128,7 +126,6 @@ int main( int argc, char** argv ){
              1,
              LINE_8
              );
-    
     double lineDist=sqrt(pow((x1-x2),2)-pow((y1-y2),2));
                          cout<<lineDist<<endl;
     pixelToMeter=reallMeter/lineDist;
@@ -151,98 +148,76 @@ int main( int argc, char** argv ){
        // algorithms.push_back(TrackerKCF::create());
         rectsObjects.push_back(rects[i]);
         algorithms.push_back(TrackerKCF::create());
-        
     }
     trackers.add(algorithms,frame,rectsObjects);
     // perform the tracking process
-    printf("Start the tracking process, press ESC to quit.\n");
-    
+    //printf("Start the tracking process, press ESC to quit.\n");
     //
     for(;;)
     {
-        
         //roi=selectROI("tracker",frame);
         cap>>frame;
+        //resize(frame, frame, cv::Size(), 0.5,0.5);
         Rect Rec(0, 500, 1900, 380);
         rectangle(frame, Rec, Scalar(255), 1, 8, 0);
         //Select area described by REC and result write to the Roi
         frame = frame(Rec);
-//        for( int x = 0; x < frame.rows; x++ ) {
-//            for( int y = 0; y < frame.cols; y++ )
-//            {
-//                if (
-//                    frame.at<Vec3b>(x, y)[0]<= 80&&frame.at<Vec3b>(x, y)[0]>= 20&&
-//                    frame.at<Vec3b>(x, y)[1]<= 80&&frame.at<Vec3b>(x, y)[1]>= 20&&
-//                    frame.at<Vec3b>(x, y)[2]<= 80&&frame.at<Vec3b>(x, y)[2]>= 20
-//
-//                    )
-//                {
-//                    frame.at<Vec3b>(x, y)[0] = 0;
-//                    frame.at<Vec3b>(x, y)[1] = 225;
-//                    frame.at<Vec3b>(x, y)[2] = 225;
-//                }
-//            }
-//        }
-//        //get the frame number and write it on the current frame
-//        stringstream ss;
-//        stringstream fps;
-//        rectangle(frame, cv::Point(10, 2), cv::Point(450,20),
-//                  cv::Scalar(255,255,255), -1);
-//        ss << cap.get(CAP_PROP_POS_FRAMES);
-//        fps << cap.get(CAP_PROP_FPS);
-//        string frameNumberString = ss.str();
-//        string fpsNumberString = fps.str();
-//        putText(frame, frameNumberString.c_str(), cv::Point(15, 15),
-//                FONT_HERSHEY_SIMPLEX, 0.5 , cv::Scalar(255,0,0));
-//        putText(frame, fpsNumberString.c_str(), cv::Point(55, 15),
-//                FONT_HERSHEY_SIMPLEX, 0.5 , cv::Scalar(255,0,0));
+        if(waitKey(1)==27)
+        {
+            vector<Rect> rect2s;
+            // container of the tracked objects
+            vector<Rect2d> rectsObject2s;
+            vector<Ptr<Tracker>> algorithm2s;
+            cout<<"stop<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"<<endl;
+            selectROIs("tracker",frame,rect2s,fromCenter);
+            for(int i=0;i<rect2s.size();i++)
+            {
+                preX.push_back(0);
+                preY.push_back(0);
+                lastX.push_back(0);
+                lastY.push_back(0);
+                speed.push_back(0);
+                speedX.push_back(0);
+                speedY.push_back(0);
+                speedCounter.push_back(0);
+                speedAvg.push_back(0);
+                speedPreAvg.push_back(0);
+                cout<<"car:"<<i<<" x: "<<rect2s[i].x<<" y: "<<rect2s[i].y<<endl;
+                // algorithms.push_back(TrackerKCF::create());
+                rectsObject2s.push_back(rect2s[i]);
+                algorithm2s.push_back(TrackerKCF::create());
+                
+            }
+            trackers.add(algorithm2s,frame,rectsObject2s);
+        }
+        stringstream ss;
+           stringstream st;
+        stringstream fps;
+        rectangle(frame, cv::Point(10, 2), cv::Point(450,20),
+                  cv::Scalar(255,255,255), -1);
+        ss << cap.get(CAP_PROP_POS_FRAMES);
+        fps << cap.get(CAP_PROP_FPS);
+        st << cap.get( CAP_PROP_POS_MSEC);
+        string frameNumberString = ss.str();
+        string fpsNumberString = fps.str();
+        string timeNumberString = st.str();
+        double timeFrame=stod(timeNumberString)/1000+40;
+      //  string timeNumberString = st.str();
+        putText(frame, frameNumberString.c_str(), cv::Point(15, 15),
+                FONT_HERSHEY_SIMPLEX, 0.5 , cv::Scalar(255,0,0));
+        putText(frame, fpsNumberString.c_str(), cv::Point(70, 15),
+                FONT_HERSHEY_SIMPLEX, 0.5 , cv::Scalar(255,0,0));
+        putText(frame, to_string(timeFrame), cv::Point(190, 15),
+                FONT_HERSHEY_SIMPLEX, 0.5 , cv::Scalar(255,0,0));
         // stop the program if no more images
         if(frame.rows==0 || frame.cols==0)
             break;
-        // update the tracking result
-       // trackers->update(frame,roi);
-      
-        // draw the tracked object
-        cout<<"tracker size"<<trackers.getObjects().size()<<endl;
-        
-        //rectangle(frame, cv::Point(10, 2), cv::Point(450,20*trackers.getObjects().size()),
-               //   cv::Scalar(255,255,255), -1);
-            frameCount++;
+        frameCount++;
         if(frameCount==6)
         {
             frameCount=0;
         for(unsigned i=0;i<trackers.getObjects().size();i++)
         {
-            vector<double>dist(trackers.getObjects().size());
-            if(i!=0)
-            {
-//                    dist[i]=sqrt ((trackers.getObjects()[0].x-trackers.getObjects()[i].x)*(trackers.getObjects()[0].x-trackers.getObjects()[i].x)+(trackers.getObjects()[0].y-trackers.getObjects()[i].y)*(trackers.getObjects()[0].y-trackers.getObjects()[i].y));
-             dist[i]=sqrt ((trackers.getObjects()[0].x-trackers.getObjects()[i].x)*(trackers.getObjects()[0].x-trackers.getObjects()[i].x));
-
-                
-                    
-                     string distanceInfo="(x only)dist between target and "+to_string(i)+" is "+to_string(dist[i]);
-                cv::line(frame,
-                      cv::Point(trackers.getObjects()[0].x+trackers.getObjects()[0].width/2,trackers.getObjects()[0].y+trackers.getObjects()[0].height/2)
-                     , cv::Point(trackers.getObjects()[i].x+trackers.getObjects()[i].width/2,trackers.getObjects()[i].y+trackers.getObjects()[i].height/2),
-                      cv::Scalar(255,0,0),
-                     1,
-                         LINE_8
-                         );
-                    cv::putText(frame,distanceInfo,
-                                cv::Point(10, 20+i*12), // Coordinates
-                                cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
-                                0.5, // Scale. 2.0 = 2x bigger
-                                cv::Scalar(0,0,0), // Color
-                                1); // Anti-alias // show image with the tracked object
-                   // cout<<"dist between target and "<<i<<" is "<<dist[i]<<endl;
-            }
-        
-            
-          
-                
-    
-             
            //cout<<"tracker speed: "<<i<<"i"<<endl;
             if(lastX[i]==0&&lastY[i]==0)
             {
@@ -254,7 +229,6 @@ int main( int argc, char** argv ){
             }
             else
             {
-                
                 //cout<<"cal speed: "<<i<<"i"<<endl;
                 speedCounter[i]+=1;
                 preX[i]=trackers.getObjects()[i].x;
@@ -266,90 +240,42 @@ int main( int argc, char** argv ){
                 speed[i]=(sqrt(speedX[i]*speedX[i]+speedY[i]*speedY[i]));
                 speedPreAvg[i]+=speed[i];
                 speedAvg[i]=speedPreAvg[i]/ speedCounter[i];
-               // cout<<"speed: "<<i<<" : "<<speedAvg[i]<<endl;
             }
             string location="X: "+to_string((int)lastX[i])+" Y: "+to_string((int)lastY[i]);
-            string speedinfo="car:"+to_string(i)+" | Raw speed "+to_string(speed[i])+" | Avg speed "+to_string(speedAvg[i]*pixelToMeter*59.97/6);;
+            string speedinfo="car:"+to_string(i)+" | Raw speed "+to_string(speed[i])+" | Avg speed "+to_string(speedAvg[i]*pixelToMeter*59.97/6);
             string carInfo="width: "+to_string((int)(trackers.getObjects()[i].width-20))+" px"+"| height "+to_string((int)(trackers.getObjects()[i].height-20))+"px ";
-            if(speed[i]==0)
-            {
-                string speedLost="car:"+to_string(i)+" lost ";
-                rectangle( frame, trackers.getObjects()[i], Scalar( 0, 255, 0 ), 0.01, 1 );
-                cv::putText(frame,speedLost,
-                            cv::Point(400, 20+i*12), // Coordinates
-                            cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
-                            0.5, // Scale. 2.0 = 2x bigger
-                            cv::Scalar(0,0,0), // Color
-                            1); // Anti-alias // show image with the tracked object
-            }
-            else
-            {
-                if(i==0)
+                if(preY[i]<1700)
                 {
-                    cout<<speed[i]<<endl;
+                    if(speed[i]==0)
+                    {
+                         outfile<<endl;
+                        outfile<<to_string(timeFrame)<<"," << i<<","<<preX[i]<<","<<preY[i]<<","<<"lost"<<",";
+                    }
+                    else
+                    {
+                         outfile<<endl;
+                        outfile<<to_string(timeFrame)<<"," << i<<","<<preX[i]<<","<<preY[i]<<","<<speedAvg[i]*pixelToMeter*59.97/6<<",";
+                    }
+
+                }
+            
                     rectangle( frame, trackers.getObjects()[i], Scalar( 0, 255, 0 ), 0.01, 1 );
-                    
-                    cv::putText(frame,speedinfo,
-                                cv::Point(trackers.getObjects()[i].x+20,trackers.getObjects()[i].y+20), // Coordinates
+
+                    cv::putText(frame,to_string(i),
+                                cv::Point(trackers.getObjects()[i].x+40,trackers.getObjects()[i].y+20), // Coordinates
                                 cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
-                                0.5, // Scale. 2.0 = 2x bigger
+                                1, // Scale. 2.0 = 2x bigger
                                 cv::Scalar(0,255,0), // Color
                                 1); // Anti-alias // show image with the tracked object
-                }
-                else
-                {
-                    rectangle( frame, trackers.getObjects()[i], Scalar( 255, 255, 0 ), 0.01, 1 );
-//                    cv::putText(frame,speed,
-//                                cv::Point(trackers.getObjects()[i].x+20,trackers.getObjects()[i].y+20), // Coordinates
-//                                cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
-//                                0.5, // Scale. 2.0 = 2x bigger
-//                                cv::Scalar(255,0,0), // Color
-//                                1); // Anti-alias // show image with the tracked object
-                    
-                    cv::putText(frame,speedinfo,
-                                cv::Point(400, 20+i*12), // Coordinates
-                                cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
-                                0.5, // Scale. 2.0 = 2x bigger
-                                cv::Scalar(0,0,0), // Color
-                                1); // Anti-alias // show image with the tracked object
-//
-                }
-              
-                
-//                cv::putText(frame,location,
-//                            cv::Point(trackers.getObjects()[i].x+20,trackers.getObjects()[i].y+30), // Coordinates
-//                            cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
-//                            0.5, // Scale. 2.0 = 2x bigger
-//                            cv::Scalar(255,0,0), // Color
-//                            1); // Anti-alias // show image with the tracked object
-//
-//                cv::putText(frame,carInfo,
-//                            cv::Point(trackers.getObjects()[i].x+20,trackers.getObjects()[i].y+20), // Coordinates
-//                            cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
-//                            0.5, // Scale. 2.0 = 2x bigger
-//                            cv::Scalar(255,0,0), // Color
-//                            1); // Anti-alias // show image with the tracked object
-            }
-            //rectangle( Roi, trackers.getObjects()[i], Scalar( 0, 255, 0 ), 0.25, 1 );
-            //cout<<"tracker: "<<i<<"x:"<<trackers.getObjects()[i].x<<i<<"y:"<<trackers.getObjects()[i].y<<endl;
         }
-            
         }
-        
-         trackers.update(frame);
-      
-        
+        trackers.update(frame);
         imshow("tracker",frame);
-        // Show output image
-        // draw the tracked object
-        //rectangle( frame, roi, Scalar( 255, 0, 0 ), 2, 1 );
-        // show image with the tracked object
-       
-        
         //quit on ESC button
-        if(waitKey(1)==27)break;
+      //  if(waitKey(1)==27)break;
     }
     //delete capture object
    cap.release();
+    outfile.close();
 return 0;
 }
