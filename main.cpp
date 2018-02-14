@@ -68,6 +68,9 @@ int main( int argc, char** argv ){
         << endl;
         return 0;
     }
+       namedWindow("My Window", CV_WINDOW_AUTOSIZE);
+       namedWindow("tracker", CV_WINDOW_AUTOSIZE);
+     //  namedWindow("My Window", 1);
     //  create the tracker
     MultiTracker trackers;
     // set input video
@@ -83,13 +86,14 @@ int main( int argc, char** argv ){
     outfile.open("./result.csv");
     outfile<<"time"<<"," << "id"<<","<<"x"<<","<<"y"<<","<<"speed"<<",";
     cap>>frame;
+    //resize(frame, frame, cv::Size(), 0.5, 0.5);
     Rect Rec(0, 500, 1900, 380);
     rectangle(frame, Rec, Scalar(255), 10, 8, 0);
     //Select area described by REC and result write to the Roi
     frame = frame(Rec);
     frameMat=frame;
     //Create a window
-    namedWindow("My Window", 1);
+ 
     //set the callback function for any mouse event
     setMouseCallback("My Window", CallBackFunc, NULL);
     //show the image
@@ -157,6 +161,7 @@ int main( int argc, char** argv ){
     {
         //roi=selectROI("tracker",frame);
         cap>>frame;
+        // resize(frame, frame, cv::Size(), 0.5, 0.5);
         //resize(frame, frame, cv::Size(), 0.5,0.5);
         Rect Rec(0, 500, 1900, 380);
         rectangle(frame, Rec, Scalar(255), 1, 8, 0);
