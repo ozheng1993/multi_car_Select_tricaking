@@ -217,6 +217,8 @@ int main( int argc, char** argv ){
         }
     }
     
+    
+    
 //    //filtering image
 //    for( int x = 0; x < frame.rows; x++ ) {
 //        for( int y = 0; y < frame.cols; y++ )
